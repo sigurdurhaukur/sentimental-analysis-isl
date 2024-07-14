@@ -1,0 +1,7 @@
+reynir
+torch
+datasets
+numpy
+pandas
+tqdm
+transformers
