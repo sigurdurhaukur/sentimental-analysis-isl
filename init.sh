@@ -9,3 +9,5 @@ mv is.tsv data/is.tsv
 
 curl --remote-name-all https://repository.clarin.is/repository/xmlui/bitstream/handle/20.500.12537/124{/rmh_filters.zip}
 unzip -q rmh_filters.zip
+
+huggingface-cli login

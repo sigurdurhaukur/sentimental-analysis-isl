@@ -18,8 +18,8 @@ class Sentiment:
         self.stopwords = np.loadtxt(stopwords_path, dtype=str, usecols=0)
         self.cache = cache_path
 
-        # for testing reduce the size of the dataset
         self.columns = self.df.columns[1:]
+
         self.average_from_each_column = [
             self.df[column].mean() for column in self.columns
         ]
