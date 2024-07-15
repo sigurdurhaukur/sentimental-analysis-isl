@@ -1,9 +1,12 @@
 # Icelandic Sentimental Analysis
 
-Related works: https://skemman.is/bitstream/1946/46224/1/FinalReport.pdf  
+Related works: https://skemman.is/bitstream/1946/46224/1/FinalReport.pdf
+
+- their model https://huggingface.co/Birkir/electra-base-igc-is-sentiment-analysis
+
 Lexicon data: https://arxiv.org/pdf/2005.05672, https://arxiv.org/abs/2005.05672
 Translation model: https://huggingface.co/mideind/nmt-doc-en-is-2022-10
-Imdb dataset: https://huggingface.co/datasets/stanfordnlp/imdb
+IMDB dataset: https://www.kaggle.com/datasets/lakshmi25npathi/imdb-dataset-of-50k-movie-reviews/data
 Imdb translated: https://github.com/cadia-lvl/sentiment-analysis/
 Stop words: https://repository.clarin.is/repository/xmlui/handle/20.500.12537/124?locale-attribute=is
 Lemmatization: https://github.com/haukurb/ReynirPackage
@@ -19,3 +22,4 @@ The classes were calculated by lemmatizing the translated IMDB dataset and remov
 TODO:
 
 finetune a transformer model on the translated IMDB dataset. Use active learning to improve the model.
+compare to the model from https://huggingface.co/Birkir/electra-base-igc-is-sentiment-analysis
