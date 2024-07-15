@@ -2,3 +2,4 @@
 data/
 rmh_filters/
 __pycache__/
+**.csv
