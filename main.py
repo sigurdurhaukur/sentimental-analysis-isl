@@ -45,4 +45,5 @@ if __name__ == "__main__":
         print(ds["train"]["review"][i][:200])
 
 
-    # ds.push_to_hub("Sigurdur/imdb-is-sentiment")
+    ds.push_to_hub("Sigurdur/imdb-is-sentiment")
+
