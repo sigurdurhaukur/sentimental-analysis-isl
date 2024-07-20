@@ -3,6 +3,7 @@ from reynir import Greynir
 from tqdm import tqdm
 import os
 import pandas as pd
+from matplotlib import pyplot as plt
 
 
 class Sentiment:
@@ -15,6 +16,13 @@ class Sentiment:
         assert os.path.exists(data_path), "Data file not found"
 
         self.df = pd.read_csv("./data/is.tsv", sep="\t")
+        # for testing
+        # self.df = self.df.head(2400)
+        self.df["word"] = self.df["word"].astype(str)
+
+        for column in self.df.columns[1:]:
+            self.df[column] = self.df[column].astype(float)
+
         self.stopwords = np.loadtxt(stopwords_path, dtype=str, usecols=0)
         self.cache = cache_path
 
@@ -37,8 +45,6 @@ class Sentiment:
 
     def clean_df(self):
         self.df = self.df.dropna()
-        self.df = self.df.drop_duplicates(subset="word")
-        self.df = self.df.reset_index(drop=True)
 
         # drop rows that are not words
         rows_to_drop = [
@@ -49,12 +55,15 @@ class Sentiment:
 
         # lemmatize the words
         for i in tqdm(range(len(self.df)), desc="Lemmatizing words"):
-            self.df.at[i, "word"] = self.lemmatize(self.df.at[i, "word"])
+            self.df.at[i, "word"] = str(self.lemmatize(self.df.at[i, "word"]))
 
-        # remove stopwords
-        self.df = self.df[~self.df["word"].isin(self.stopwords)]
+        # sometimes, lemmatizer creates duplicates
+        self.df = self.df.drop_duplicates(subset="word")
+        self.df = self.df.reset_index(drop=True)
+
         if self.cache:
             self.df.to_csv(self.cache, sep="\t", header=True, index=False)
+                
 
     def lemmatize(self, txt: str) -> str:
         s = self.greynir.parse_single(txt)
@@ -62,15 +71,17 @@ class Sentiment:
             return " ".join(s.lemmas) if s.lemmas else txt
         return txt
 
-    def preprocess_text(self, text: str) -> str:
+    def preprocess_text(self, text: str, remove_stop_words=True) -> str:
         text = text.lower()
-        text = "".join(e for e in text if e.isalnum() or e.isspace())
+        # text = "".join(e for e in text if e.isalnum() or e.isspace())
         text = text.strip()
         text = self.lemmatize(text)
 
-        txt = text.split()
-        text = " ".join([word for word in txt if word not in self.stopwords])
+        if remove_stop_words:
+            txt = text.split()
+            text = " ".join([word for word in txt if word not in self.stopwords])
 
+        assert text, "Text is empty"
         return text
 
     def sentence_score(self, sentence: str) -> list:
@@ -84,13 +95,14 @@ class Sentiment:
             try:
                 if word in word_scores.index:
                     score = (
-                        word_scores.loc[word].values[1:].tolist()
+                        word_scores.loc[word].values.tolist()
                     )  # first column is the word itself
+                    assert len(score) == len(self.columns), "Invalid score"
                     valid_scores.append(score)
             except Exception as e:
                 print(f"Error processing word '{word}': {e}")
                 continue
-
+            
         if valid_scores:
             scores = np.mean(np.array(valid_scores), axis=0).tolist()
         else:
@@ -99,18 +111,28 @@ class Sentiment:
 
         return scores
 
-    def what_class(self, scores: list) -> str:
+    def what_class(self, scores: list, top_k=3) -> str:
         # skip valance class, since its a "combination of all classes"
-        columns = self.columns[1:]
+        columns = self.columns
         scores = scores[1:]
 
+        # if all scores are 0, then the class is unknown
         if scores == [0] * len(scores):
-            return "Unknown"
+            return ["Unknown"]
 
-        # take the difference between the score and the max value
-        diff = [max_value - score for max_value, score in zip(self.max_values, scores)]
-        # take the index of the max difference
-        return columns[diff.index(max(diff))]
+        # take difference between the score and the max value, the lower the difference the more likely it is that class
+        # take the difference between the score and the average of the column, larger difference means more likely class
+        # diff = [max_value - score for max_value, score in zip(self.max_values, scores)]
+        diff = [abs(score - avg) for score, avg in zip(scores, self.average_from_each_column)]
+        
+        labels = {}
+        for columns, diff in zip(columns, diff):
+            labels[columns] = diff
+
+        # sort the labels by the difference
+        labels = dict(sorted(labels.items(), key=lambda item: item[1], reverse=False))
+
+        return list(labels.keys())[:top_k]
 
     def __call__(self, txt):
         if isinstance(txt, str):

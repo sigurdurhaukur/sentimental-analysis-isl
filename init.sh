@@ -1,7 +1,7 @@
 mkdir data
 
-wget -q https://zenodo.org/record/3756607/files/MTL_grouped.zip?download=1 -O MTL_grouped.zip
-unzip -q MTL_grouped.zip
+wget https://zenodo.org/record/3756607/files/MTL_grouped.zip?download=1 -O MTL_grouped.zip
+unzip MTL_grouped.zip
 find . -maxdepth 1 -type f -name "*.tsv" ! -name "is.tsv" -exec rm {} +
 
 mv is.tsv data/is.tsv  

@@ -1,10 +1,6 @@
 import re
-import torch
-from tqdm import tqdm
 from utils import Sentiment
 from datasets import load_dataset
-from transformers import pipeline
-from transformers.pipelines.pt_utils import KeyDataset
 
 
 def preprocess_text(txt):
@@ -21,20 +17,18 @@ def preprocess_text(txt):
 
     return texts
 
+def add_sentiment(batch, sentiment):
+    texts = preprocess_text(batch["review"])
+    sentiments = sentiment(texts)
+    batch["sentiment"] = sentiments
+
+    return batch
+
 if __name__ == "__main__":
-    ds = load_dataset("stanfordnlp/imdb")
-
-    device = torch.cuda.current_device() if torch.cuda.is_available() else -1
-    pipe = pipeline(
-        "translation",
-        model="mideind/nmt-doc-en-is-2022-10",
-        src_lang="en_XX",
-        tgt_lang="is_IS",
-        device=device,
-    )
-
-    ds.push_to_hub("Sigurdur/imdb-is")
-
+    ds = load_dataset("Sigurdur/imdb-isl-google-translate", keep_in_memory=True)
+    
+    # for testing
+    # ds["train"] = ds["train"].select(range(150))
     sentiment = Sentiment()
 
     ds["train"] = ds["train"].map(
@@ -43,4 +37,12 @@ if __name__ == "__main__":
         batch_size=10,
     )
 
-    ds.push_to_hub("Sigurdur/imdb-is-sentiment")
+    for i in range(len(ds["train"])):
+        if ds["train"]["sentiment"][i] == ["Unknown"]:
+            continue
+
+        print(ds["train"]["sentiment"][i])
+        print(ds["train"]["review"][i][:200])
+
+
+    # ds.push_to_hub("Sigurdur/imdb-is-sentiment")
