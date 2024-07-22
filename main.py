@@ -28,8 +28,8 @@ if __name__ == "__main__":
     ds = load_dataset("Sigurdur/imdb-isl-google-translate", keep_in_memory=True)
     
     # for testing
-    # ds["train"] = ds["train"].select(range(150))
-    sentiment = Sentiment()
+    # ds["train"] = ds["train"].select(range(15))
+    sentiment = Sentiment(remove_stop_words=True)
 
     ds["train"] = ds["train"].map(
         lambda batch: add_sentiment(batch, sentiment),
@@ -37,7 +37,7 @@ if __name__ == "__main__":
         batch_size=10,
     )
 
-    for i in range(len(ds["train"])):
+    for i in range(10):
         if ds["train"]["sentiment"][i] == ["Unknown"]:
             continue
 

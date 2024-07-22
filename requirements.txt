@@ -1,7 +1,7 @@
-reynir
-torch
+transformers
 datasets
+torch
 numpy
 pandas
+reynir
 tqdm
-transformers

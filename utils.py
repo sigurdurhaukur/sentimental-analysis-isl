@@ -12,6 +12,7 @@ class Sentiment:
         data_path="./data/is.tsv",
         cache_path="./data/is_clean.tsv",
         stopwords_path="./rmh_filters/IGC_filters_all.txt",
+        remove_stop_words=False,
     ):
         assert os.path.exists(data_path), "Data file not found"
 
@@ -20,10 +21,18 @@ class Sentiment:
         # self.df = self.df.head(2400)
         self.df["word"] = self.df["word"].astype(str)
 
+        # remove extremely large words
+        self.df = self.df[self.df["word"].str.len() < 20]
+        self.df = self.df.reset_index(drop=True)
+
         for column in self.df.columns[1:]:
             self.df[column] = self.df[column].astype(float)
 
-        self.stopwords = np.loadtxt(stopwords_path, dtype=str, usecols=0)
+        if remove_stop_words:
+            assert os.path.exists(stopwords_path), "Stopwords file not found"
+            self.stopwords = np.loadtxt(stopwords_path, dtype=str, usecols=0)
+
+        self.remove_stop_words = remove_stop_words
         self.cache = cache_path
 
         self.columns = self.df.columns[1:]
@@ -39,7 +48,20 @@ class Sentiment:
             print(f"Failed to initialize Greynir: {e}")
 
         if os.path.exists(self.cache):
-            self.df = pd.read_csv(self.cache, sep="\t")
+            cached_df = pd.read_csv(self.cache, sep="\t")
+
+            # check if the cache is up to date
+            if len(cached_df) == len(self.df):
+                self.df = cached_df
+            else:
+                # write the new data to the cache
+                # last_index = len(cached_df)
+
+                # print("Cache is not up to date, updating cache...")
+                # print(f"{last_index/len(self.df)*100:.2f}% done")
+                # self.df = self.df.iloc[last_index:]
+                # self.clean_df()
+                pass
         else:
             self.clean_df()
 
@@ -54,15 +76,27 @@ class Sentiment:
         self.df = self.df.reset_index(drop=True)
 
         # lemmatize the words
-        for i in tqdm(range(len(self.df)), desc="Lemmatizing words"):
-            self.df.at[i, "word"] = str(self.lemmatize(self.df.at[i, "word"]))
+        # split the data into chunks and process them in parallel
 
-        # sometimes, lemmatizer creates duplicates
-        self.df = self.df.drop_duplicates(subset="word")
-        self.df = self.df.reset_index(drop=True)
+        data_chunks = np.array_split(self.df, 50)
+        for chunk in data_chunks:
+            print(f"Processing chunk: {chunk.index[0]} - {chunk.index[-1]}")
+            chunk = chunk.reset_index(drop=True)
+            for i in tqdm(range(len(chunk)), desc="Lemmatizing words"):
+                chunk.at[i, "word"] = str(self.lemmatize(chunk.at[i, "word"]))
 
-        if self.cache:
-            self.df.to_csv(self.cache, sep="\t", header=True, index=False)
+            
+            chunk = chunk.drop_duplicates(subset="word")
+            chunk = chunk.reset_index(drop=True)
+
+            if self.cache:
+                chunk.to_csv(self.cache, sep="\t", header=False, index=False, mode="a")
+
+            del chunk
+
+
+        # if self.cache:
+            # self.df.to_csv(self.cache, sep="\t", header=True, index=False)
                 
 
     def lemmatize(self, txt: str) -> str:
@@ -71,13 +105,13 @@ class Sentiment:
             return " ".join(s.lemmas) if s.lemmas else txt
         return txt
 
-    def preprocess_text(self, text: str, remove_stop_words=True) -> str:
+    def preprocess_text(self, text: str) -> str:
         text = text.lower()
         # text = "".join(e for e in text if e.isalnum() or e.isspace())
         text = text.strip()
         text = self.lemmatize(text)
 
-        if remove_stop_words:
+        if self.remove_stop_words:
             txt = text.split()
             text = " ".join([word for word in txt if word not in self.stopwords])
 
