@@ -105,15 +105,20 @@ class Sentiment:
             return " ".join(s.lemmas) if s.lemmas else txt
         return txt
 
-    def preprocess_text(self, text: str) -> str:
+    def preprocess_text(self, text: str, truncate=True) -> str:
         text = text.lower()
         # text = "".join(e for e in text if e.isalnum() or e.isspace())
+
+        if truncate and len(text) > 1000:
+            text = text[:1000]
+
         text = text.strip()
         text = self.lemmatize(text)
 
         if self.remove_stop_words:
             txt = text.split()
             text = " ".join([word for word in txt if word not in self.stopwords])
+
 
         assert text, "Text is empty"
         return text
